@@ -1,38 +1,44 @@
-# sv
+# PartyLogger
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A SvelteKit project for logging and managing party tickets.
 
-## Creating a project
+## Project Setup
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Via Docker (Easiest)
 
-```bash
-# create a new project in the current directory
-npx sv create
+### Prerequisites
 
-# create a new project in my-app
-npx sv create my-app
-```
+- Docker
+- Docker Compose
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+### Running the project
 
 ```bash
-npm run dev
+docker-compose up
+```
+The server will be running on `http://0.0.0.0:3000`.
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+## Manual Setup
+
+### Prerequisites
+
+- Node.js 18.x
+- npm
+
+### Installing the dependencies
+
+```bash
+npm install
 ```
 
-## Building
-
-To create a production version of your app:
+### Building the project
 
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+### Running the project
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+npm build
+```
