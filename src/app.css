@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/optional/presets';
+@import '@skeletonlabs/skeleton/themes/cerberus';
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
