@@ -50,7 +50,7 @@
 <!--		</div>-->
 <!--	</div>-->
 	<div class="flex items-center justify-center min-h-[400px]">
-		<img src="src/lib/images/grue_maintenance.jpg" alt="Grue de maintenance" class="w-96" />
+		<img src="/grue_maintenance.jpg" alt="Grue de maintenance" class="w-96" />
 	</div>
 	<div class="flex items-center justify-center">
 		<h1 class="text-2xl font-bold">Page en cours de construction...</h1>

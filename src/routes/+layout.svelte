@@ -24,7 +24,7 @@
 				src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/199px-Svelte_Logo.svg.png"
 			/>
 		</div>
-		<p class="ml-5 my-auto text-xl sm:hidden w-full">Super site web</p>
+		<p class="ml-5 my-auto text-xl sm:hidden w-full">BDE Ensisa</p>
 <!-- Desktop view -->
 		<a class="btn border-none hidden sm:inline-flex {value === 'listes'? current : ''}" href="/" onclick={() => value = 'listes'}>
 			<Users />
@@ -49,7 +49,7 @@
 	<Navigation.Bar {value} onValueChange={(newValue) => (value = newValue)}>
 		<Navigation.Tile id="logs" label="Journal" onclick={() => goto("/logs")}><NotepadText /></Navigation.Tile>
 		<Navigation.Tile id="listes" label="Listes" onclick={() => goto("/")}><Users /></Navigation.Tile>
-		<Navigation.Tile id="stats" label="Stats" onclick={() => goto("/")}><ChartLine /></Navigation.Tile>
+		<Navigation.Tile id="stats" label="Stats" onclick={() => goto("/stats")}><ChartLine /></Navigation.Tile>
 	</Navigation.Bar>
 </div>
 </main>
