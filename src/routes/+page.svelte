@@ -258,7 +258,7 @@
 						<tfoot>
 						<tr class="bg-gray-200">
 							<td colspan="4">Total</td>
-							<td class="text-right">{filteredStudents.length} Elements</td>
+							<td class="text-right">{$filteredStudents.length} Elements</td>
 						</tr>
 						</tfoot>
 					</table>
