@@ -332,8 +332,13 @@
     .table-wrap {
 				margin-top: -1rem ;
         display: block;
-        max-height: 650px; /* Ajustez la hauteur selon vos besoins */
+        max-height: 600px; /* Ajustez la hauteur selon vos besoins */
         overflow-y: auto;
+    }
+    @media (width <= 40rem /* 640px */) {
+        .table-wrap {
+            max-height: calc(100vh - 154px - 6rem);
+				}
     }
 
     .table {

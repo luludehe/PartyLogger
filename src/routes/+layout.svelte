@@ -44,7 +44,7 @@
 	</nav>
 
 	<slot />
-<div class="card border-surface-100-900 sm:hidden grid w-screen grid-rows-[1fr_auto] border-[1px] fixed bottom-0 sm:absolute">
+<div class="card border-surface-100-900 sm:hidden grid w-screen grid-rows-[1fr_auto] border-[1px] fixed bottom-0 sm:absolute z-20">
 	<!-- Component -->
 	<Navigation.Bar {value} onValueChange={(newValue) => (value = newValue)}>
 		<Navigation.Tile id="logs" label="Journal" onclick={() => goto("/logs")}><NotepadText /></Navigation.Tile>
