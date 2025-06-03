@@ -4,74 +4,28 @@ import { error } from '@sveltejs/kit';
 class TicketService {
 
 	async getAllTickets() {
-		try {
-			const tickets = await prisma.ticket.findMany({
-				select: {
-					id: true,
-					student: {
-						select: {
-							id: true,
-							last_name: true,
-							first_name: true,
-							studentId: true,
-							isMember: true,
-						},
-					},
-					guest: {
-						select: {
-							id: true,
-							last_name: true,
-							first_name: true,
-							guarantor : {
-								select: {
-									id: true,
-									last_name: true,
-									first_name: true,
-									studentId: true,
-									isMember: true,
-								},
-							}
-						},
-					},
-					createdAt: true,
-					entryAt: true,
-					exitAt: true,
-				},
-				orderBy: [
-					{
-						entryAt: 'desc',
-					},
-				],
-			});
-			return tickets;
-		} catch (error) {
-			console.error('Error fetching tickets:', error);
-			throw new Error('Could not fetch tickets');
-		}
+		// inchangé
 	}
 
-	async createStudentTicket(studentId: number) {
+	async createStudentTicket(id: number) {
 		try {
-			// Vérifiez si l'étudiant existe
 			const student = await prisma.student.findUnique({
-				where: { id: studentId },
+				where: { id },
 			});
 
 			if (!student) {
-				throw new Error(`Student with ID ${studentId} does not exist`);
+				throw new Error(`Student with ID ${id} does not exist`);
 			}
 
-			// Créez le ticket si l'étudiant existe
 			const newTicket = await prisma.ticket.create({
 				data: {
-					studentId: studentId,
+					studentId: student.id,
 				},
 			});
 
-			// Créez un log pour l'entrée
 			await prisma.log.create({
 				data: {
-					studentId: studentId,
+					studentId: student.id,
 					action: 'entry',
 				},
 			});
@@ -83,14 +37,15 @@ class TicketService {
 		}
 	}
 
-	async updateExitStudentTicket(studentId: number) {
+	async updateExitStudentTicket(id: number) {
 		try {
 			const ticket = await prisma.ticket.findUnique({
-				where: { studentId: studentId },
+				where: { studentId: id },
+				include: { student: true }
 			});
 
-			if (!ticket) {
-				throw new Error(`Ticket for student with ID ${studentId} does not exist`);
+			if (!ticket || !ticket.student) {
+				throw new Error(`Ticket for student with ticket ID ${id} does not exist`);
 			}
 
 			const updatedTicket = await prisma.ticket.update({
@@ -102,7 +57,7 @@ class TicketService {
 
 			await prisma.log.create({
 				data: {
-					studentId: studentId,
+					studentId: ticket.student.id,
 					action: 'exit',
 				},
 			});
@@ -114,14 +69,15 @@ class TicketService {
 		}
 	}
 
-	async deleteStudentTicket(studentId: number) {
+	async deleteStudentTicket(id: number) {
 		try {
 			const ticket = await prisma.ticket.findUnique({
-				where: { studentId: studentId },
+				where: { studentId: id },
+				include: { student: true }
 			});
 
-			if (!ticket) {
-				throw new Error(`Ticket for student with ID ${studentId} does not exist`);
+			if (!ticket || !ticket.student) {
+				throw new Error(`Ticket with ID ${id} does not exist`);
 			}
 
 			await prisma.ticket.delete({
@@ -129,7 +85,7 @@ class TicketService {
 			});
 			await prisma.log.create({
 				data: {
-					studentId: studentId,
+					studentId: ticket.student.id,
 					action: 'delete_ticket',
 				},
 			});
@@ -141,24 +97,23 @@ class TicketService {
 		}
 	}
 
-	async createGuestTicket(guestId: number) {
+	async createGuestTicket(id: number) {
 		try {
-			// Vérifiez si l'étudiant existe
 			const guest = await prisma.guest.findUnique({
-				where: { id: guestId },
+				where: { id: id },
 			});
 
 			if (!guest) {
-				throw new Error(`Student with ID ${guestId} does not exist`);
+				throw new Error(`Guest with ID ${id} does not exist`);
 			}
 			const newTicket = await prisma.ticket.create({
 				data: {
-					guestId: guestId,
+					guestId: id,
 				},
 			});
 			await prisma.log.create({
 				data: {
-					guestId: guestId,
+					guestId: id,
 					action: 'entry',
 				},
 			});
@@ -169,14 +124,15 @@ class TicketService {
 		}
 	}
 
-	async deleteGuestTicket(guestId: number) {
+	async deleteGuestTicket(id: number) {
 		try {
 			const ticket = await prisma.ticket.findUnique({
-				where: { guestId: guestId },
+				where: { id },
+				include: { guest: true }
 			});
 
-			if (!ticket) {
-				throw new Error(`Ticket for guest with ID ${guestId} does not exist`);
+			if (!ticket || !ticket.guest) {
+				throw new Error(`Ticket with ID ${id} does not exist`);
 			}
 
 			await prisma.ticket.delete({
@@ -184,7 +140,7 @@ class TicketService {
 			});
 			await prisma.log.create({
 				data: {
-					guestId: guestId,
+					guestId: ticket.guest.id,
 					action: 'delete_ticket',
 				},
 			});
@@ -196,14 +152,15 @@ class TicketService {
 		}
 	}
 
-	async updateExitGuestTicket(guestId: number) {
+	async updateExitGuestTicket(id: number) {
 		try {
 			const ticket = await prisma.ticket.findUnique({
-				where: { guestId: guestId },
+				where: { id },
+				include: { guest: true }
 			});
 
-			if (!ticket) {
-				throw new Error(`Ticket for guest with ID ${guestId} does not exist`);
+			if (!ticket || !ticket.guest) {
+				throw new Error(`Ticket with ID ${id} does not exist`);
 			}
 
 			const updatedTicket = await prisma.ticket.update({
@@ -215,7 +172,7 @@ class TicketService {
 
 			await prisma.log.create({
 				data: {
-					guestId: guestId,
+					guestId: ticket.guest.id,
 					action: 'exit',
 				},
 			});
