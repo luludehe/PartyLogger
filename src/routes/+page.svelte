@@ -38,11 +38,6 @@
 		fetchLists();
 	});
 
-	function clearSearch() {
-		search = '';
-		filter();
-	}
-
 	function filter() {
 		const searchLower = search.toLowerCase();
 		studentList.update(students => {
