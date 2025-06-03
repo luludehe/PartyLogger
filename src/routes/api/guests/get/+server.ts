@@ -1,5 +1,5 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import GuestService from '../../../services/GuestService';
+import GuestService from '../../../../services/GuestService';
 
 export const GET: RequestHandler = async () => {
 	try {

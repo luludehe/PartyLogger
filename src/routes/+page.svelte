@@ -6,19 +6,20 @@
 	import { writable } from 'svelte/store';
 	import { Modal } from '@skeletonlabs/skeleton-svelte';
 	import { Segment } from '@skeletonlabs/skeleton-svelte';
+	import { User, CaseUpper, CaseSensitive, Check, CircleX } from '@lucide/svelte';
 
 	let search = $state('');
 	let group = $state('students');
-	const studentList = writable([]);
-	const guestList = writable([]);
+	const studentList = writable<Array<{ id: number, studentId: number; last_name: string; first_name: string; isMember: boolean; ticket?: any }>>([]);
+	const guestList = writable<Array<{ id: number; last_name: string; first_name: string; guarantor?: { studentId: number; last_name: string; first_name: string }; ticket?: any }>>([]);
 	const filteredStudents = writable([]);
 	const filteredGuests = writable([]);
-
+	const errorMessage = writable('');
 	async function fetchLists() {
 		try {
 			const [studentsRes, guestsRes] = await Promise.all([
 				fetch('/api/students'),
-				fetch('/api/guests')
+				fetch('/api/guests/get')
 			]);
 			if (!studentsRes.ok || !guestsRes.ok) {
 				throw new Error('Failed to fetch lists');
@@ -154,26 +155,88 @@
 		}
 	}
 
-	let openState = $state(false);
+	let actionsModalOpen = $state(false);
 	let choice: string = $state('');
 
-	function modalClose() {
-		openState = false;
+	function actionsModalClose() {
+		actionsModalOpen = false;
 		choice = '';
 	}
-	function modalConfirm(id:number) {
+	function actionsModalConfirm(id:number) {
 		if (choice === 'exit') {
 			handleExitTicketClick(id);
 		} else if (choice === 'delete') {
 			handleDeleteTicketClick(id)
 		}
-		openState = false;
+		actionsModalOpen = false;
+	}
+
+	let newGuestModalOpen = $state(false);
+
+	function newGuestModalClose() {
+		newGuestModalOpen = false;
+		guestLastName = '';
+		guestFirstName = '';
+		guarantorName = '';
+		guarantorId = null;
+		showValidationGuarantor = false;
+		return 1;
+	}
+
+	let guarantorName = $state('');
+	let guarantorId: number | null = $state(null);
+
+	function handleGuarantorInput(e: Event) {
+		showValidationGuarantor = true;
+		const value = (e.target as HTMLInputElement).value;
+		guarantorName = value;
+		const student = $studentList.find(
+			s => (s.last_name.toUpperCase() + ' ' + s.first_name) === value
+		);
+		guarantorId = student ? student.id : null;
+	}
+
+	function isGuarantorValid() {
+		return $studentList.some(
+			s => (s.last_name.toUpperCase() + ' ' + s.first_name) === guarantorName
+		);
+	}
+	let showValidationGuarantor = $state(false);
+	let guestLastName = $state('');
+	let guestFirstName = $state('');
+	async function newGuestModalSend() {
+		if (!guestLastName || !guestFirstName || !guarantorId || !isGuarantorValid()) {
+			errorMessage.set('Veuillez remplir tous les champs et sélectionner un garant valide.');
+			return;
+		}
+
+		try {
+			const response = await fetch('/api/guests/create', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					lastName: guestLastName,
+					firstName: guestFirstName,
+					guarantorId
+				})
+			});
+			if (!response.ok) throw new Error('Erreur lors de la création');
+			await fetchLists();
+			newGuestModalOpen = false;
+			guestLastName = '';
+			guestFirstName = '';
+			guarantorName = '';
+			guarantorId = null;
+			showValidationGuarantor = false;
+		} catch (e) {
+			errorMessage.set('Erreur lors de la création de l\'invité');
+		}
 	}
 </script>
 
 <Container>
 	<!-- Search bar -->
-	<DeviceMenu bind:input_value={search} filter={filter}/>
+	<DeviceMenu bind:input_value={search} filter={filter} bind:ModalOpen={newGuestModalOpen}/>
 	<!-- Modal for device creation -->
 <!--	<CreationModal bind:show={showCreateForm} />-->
 
@@ -211,8 +274,8 @@
 										{#if row.ticket.entryAt == row.ticket.exitAt }
 <!--										<button class="btn btn-sm btn-primary" onclick={() => handleDeleteTicketClick(row.id)}>Supprimer</button> | <button class="btn btn-sm btn-primary" disabled onclick={() => handleDeleteTicketClick(row.id)}>Parti(e)</button>-->
 											<Modal
-												open={openState}
-												onOpenChange={(e) => (openState = e.open)}
+												open={actionsModalOpen}
+												onOpenChange={(e) => (actionsModalOpen = e.open)}
 												triggerBase="btn btn-sm btn-primary"
 												contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
 												backdropClasses="backdrop-blur-sm"
@@ -240,8 +303,8 @@
 														</div>
 													</article>
 													<footer class="flex justify-end gap-4">
-														<button type="button" class="btn preset-tonal" onclick={modalClose}>Annuler</button>
-														<button type="button" class="btn preset-filled" onclick={() => modalConfirm(row.id)}>Confirmer</button>
+														<button type="button" class="btn preset-tonal" onclick={actionsModalClose}>Annuler</button>
+														<button type="button" class="btn preset-filled" onclick={() => actionsModalConfirm(row.id)}>Confirmer</button>
 													</footer>
 												{/snippet}
 											</Modal>
@@ -327,6 +390,78 @@
 		</div>
 	{/if}
 </Container>
+<Modal
+	open={newGuestModalOpen}
+	onOpenChange={(e) => (newGuestModalOpen = e.open)}
+	triggerBase="btn btn-sm btn-primary"
+	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+	backdropClasses="backdrop-blur-sm"
+>
+	{#snippet content()}
+		<header class="flex justify-between">
+			<h2 class="h2">Ajout d'un externe</h2>
+		</header>
+		<article>
+			<p class="opacity-60">
+				Vous pouvez ajouter un externe en remplissant les champs suivants. Assurez-vous de fournir les informations correctes. Tous les champs sont obligatoires.
+			</p>
+			<h4 class="pt-4">Informations sur l'externe</h4>
+			<div class="flex gap-4 justify-center py-5">
+				<div class="input-group grid-cols-[auto_1fr_auto]">
+					<div class="ig-cell preset-tonal">
+						<CaseSensitive size={16} />
+					</div>
+					<input class="ig-input" type="text" placeholder="Jean" required bind:value={guestFirstName}/>
+				</div>
+				<div class="input-group grid-cols-[auto_1fr_auto]">
+					<div class="ig-cell preset-tonal">
+						<CaseUpper size={16} />
+					</div>
+					<input class="ig-input" type="text" placeholder="DUPONT" required bind:value={guestLastName}/>
+				</div>
+			</div>
+			<h4 class="pt-4">Informations sur le garant</h4>
+			<div class="flex gap-4 justify-center py-5">
+				<div class="input-group grid-cols-[auto_1fr_auto]">
+					<div class="ig-cell preset-tonal">
+						<User size={16} />
+					</div>
+					<input
+						class="ig-input"
+						type="text"
+						placeholder="NOM Prénom"
+						list="students"
+						bind:value={guarantorName}
+						oninput={handleGuarantorInput}
+						required
+					/>
+					{#if (guarantorName !== '' || showValidationGuarantor) && isGuarantorValid()}
+						<div class="ig-cell bg-green-500">
+							<Check size={16} />
+						</div>
+					{/if}
+					{#if (guarantorName !== '' || showValidationGuarantor) && !isGuarantorValid()}
+						<div class="ig-cell bg-red-500">
+							<CircleX size={16} />
+						</div>
+					{/if}
+					<datalist id="students">
+						{#each $studentList as student}
+							<option value={student.last_name.toUpperCase() + ' ' + student.first_name} data-id={student.studentId}></option>
+						{/each}
+					</datalist>
+					{#if guarantorId !== null}
+						<input type="hidden" value={guarantorId} />
+					{/if}
+				</div>
+			</div>
+		</article>
+		<footer class="flex justify-end gap-4">
+			<button type="button" class="btn preset-tonal" onclick={() => newGuestModalClose()}>Annuler</button>
+			<button type="button" class="btn preset-filled" onclick={() => newGuestModalSend()}>Confirmer</button>
+		</footer>
+	{/snippet}
+</Modal>
 
 <style>
     .table-wrap {
