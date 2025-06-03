@@ -7,7 +7,7 @@
 	import { Modal } from '@skeletonlabs/skeleton-svelte';
 	import { Segment } from '@skeletonlabs/skeleton-svelte';
 
-	let search = '';
+	let search = $state('');
 	let group = $state('students');
 	const studentList = writable([]);
 	const guestList = writable([]);
@@ -37,6 +37,11 @@
 	onMount(() => {
 		fetchLists();
 	});
+
+	function clearSearch() {
+		search = '';
+		filter();
+	}
 
 	function filter() {
 		const searchLower = search.toLowerCase();
