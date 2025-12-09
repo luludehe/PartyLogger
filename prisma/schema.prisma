@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,41 +13,97 @@ model Student {
   first_name String
   studentId  Int     @unique
   speciality String
-  isMember   Boolean // Indique si l'étudiant est adhérent
-
-  ticket Ticket?
-  guests Guest[]
-  Log    Log[]
+  isMember   Boolean
+  guests     Guest[]
+  Log        Log[]
+  ticket     Ticket?
 }
 
 model Guest {
   id          Int      @id @default(autoincrement())
   last_name   String
   first_name  String
-  guarantor   Student? @relation(fields: [guarantorId], references: [id])
   guarantorId Int?
+  guarantor   Student? @relation(fields: [guarantorId], references: [id])
+  Log         Log[]
+  ticket      Ticket?
 
-  ticket Ticket?
-  Log    Log[]
+  @@index([guarantorId], map: "Guest_guarantorId_fkey")
 }
 
 model Ticket {
   id        Int       @id @default(autoincrement())
-  student   Student?  @relation(fields: [studentId], references: [id])
   studentId Int?      @unique
-  guest     Guest?    @relation(fields: [guestId], references: [id])
   guestId   Int?      @unique
   createdAt DateTime  @default(now())
   entryAt   DateTime? @default(now())
   exitAt    DateTime? @default(now())
+  guest     Guest?    @relation(fields: [guestId], references: [id])
+  student   Student?  @relation(fields: [studentId], references: [id])
 }
 
 model Log {
   id        Int      @id @default(autoincrement())
-  student   Student? @relation(fields: [studentId], references: [id])
   studentId Int?
-  guest     Guest?   @relation(fields: [guestId], references: [id])
   guestId   Int?
   action    String
   timestamp DateTime @default(now())
+  guest     Guest?   @relation(fields: [guestId], references: [id])
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  @@index([guestId], map: "Log_guestId_fkey")
+  @@index([studentId], map: "Log_studentId_fkey")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model old_Student {
+  C1 Int?
+  C2 String? @db.Text
+  C3 String? @db.Text
+  C4 Int?
+  C5 Int?
+
+  @@ignore
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  roleId       Int
+  role         Role      @relation(fields: [roleId], references: [id])
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now())
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  roles       Role[]
+  createdAt   DateTime @default(now())
 }

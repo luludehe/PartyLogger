@@ -1,7 +1,13 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import TicketService from '../../../../services/TicketService';
+import { hasPermission, PERMISSIONS } from '$lib/server/permissions';
+import { json } from '@sveltejs/kit';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	// Vérifier l'authentification et les permissions
+	if (!locals.user || !hasPermission(locals.user, PERMISSIONS.DELETE_TICKETS)) {
+		return json({ error: 'Permission refusée' }, { status: 403 });
+	}
 	try {
 		const { type, id } = await request.json();
 		console.log('Received data for delete:', { type, id });

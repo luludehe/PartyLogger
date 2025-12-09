@@ -1,8 +1,14 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import GuestService from '../../../../services/GuestService';
 import StudentService from '../../../../services/StudentService';
+import { hasPermission, PERMISSIONS } from '$lib/server/permissions';
+import { json } from '@sveltejs/kit';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	// Vérifier l'authentification et les permissions
+	if (!locals.user || !hasPermission(locals.user, PERMISSIONS.MANAGE_GUESTS)) {
+		return json({ error: 'Permission refusée' }, { status: 403 });
+	}
 	try {
 		const data = await request.json();
 		console.log('Received data for guest creation:', data);
