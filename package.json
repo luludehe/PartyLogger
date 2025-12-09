@@ -20,6 +20,7 @@
 		"seed": "tsx prisma/seed.ts"
 	},
 	"devDependencies": {
+		"@faker-js/faker": "^10.1.0",
 		"@skeletonlabs/skeleton": "^3.1.1",
 		"@skeletonlabs/skeleton-svelte": "^1.0.0",
 		"@sveltejs/adapter-node": "^5.2.11",
@@ -48,6 +49,7 @@
 		"@lucide/svelte": "^0.484.0",
 		"@oslojs/crypto": "^1.0.1",
 		"@prisma/client": "^6.5.0",
-		"bcrypt": "^6.0.0"
+		"bcrypt": "^6.0.0",
+		"svelte-flexiboards": "^0.3.2"
 	}
 }

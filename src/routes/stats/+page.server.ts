@@ -14,10 +14,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/');
 	}
 
-	const ticketsByHour = await StatService.getTicketsByHour();
-	const studentsTickets = await StatService.getStudentsWithTickets();
-	const studentsCount = await StatService.getStudentsCount();
-	const guestsTickets = await StatService.getGuestsWithTickets();
-	const guestsCount = await StatService.getGuestsCount();
-	return { ticketsByHour, studentsTickets, studentsCount, guestsTickets, guestsCount };
+	try {
+		const ticketsByHour = await StatService.getTicketsByHour();
+		const studentsTickets = await StatService.getStudentsWithTickets();
+		const studentsCount = await StatService.getStudentsCount();
+		const guestsTickets = await StatService.getGuestsWithTickets();
+		const guestsCount = await StatService.getGuestsCount();
+		return { ticketsByHour, studentsTickets, studentsCount, guestsTickets, guestsCount };
+	} catch (error) {
+		console.error('Error loading stats:', error);
+		// Return empty stats instead of crashing
+		return { ticketsByHour: [], studentsTickets: 0, studentsCount: 0, guestsTickets: 0, guestsCount: 0 };
+	}
 };

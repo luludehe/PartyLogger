@@ -46,7 +46,7 @@
 				<p class="hidden sm:block">Statistiques</p></a>
 			
 			{#if hasPermission('admin_panel')}
-				<a class="btn border-none hidden sm:inline-flex {value === 'admin'? current : ''}" href="/admin" onclick={() => value = 'admin'}>
+				<a class="btn border-none hidden sm:inline-flex {value === 'admin'? current : ''}" href="/admin/dashboard" onclick={() => value = 'admin'}>
 					<Shield />
 					<p class="hidden sm:block">Admin</p></a>
 			{/if}
@@ -97,7 +97,7 @@
 			<Navigation.Tile id="listes" label="Listes" onclick={() => goto("/")}><Users /></Navigation.Tile>
 			<Navigation.Tile id="stats" label="Stats" onclick={() => goto("/stats")}><ChartLine /></Navigation.Tile>
 			{#if hasPermission('admin_panel')}
-				<Navigation.Tile id="admin" label="Admin" onclick={() => goto("/admin")}><Shield /></Navigation.Tile>
+				<Navigation.Tile id="admin" label="Admin" onclick={() => goto("/admin/dashboard")}><Shield /></Navigation.Tile>
 			{/if}
 		</Navigation.Bar>
 	</div>

@@ -6,16 +6,40 @@
 	import { writable } from 'svelte/store';
 	import { Modal } from '@skeletonlabs/skeleton-svelte';
 	import { Segment } from '@skeletonlabs/skeleton-svelte';
-	import { User, CaseUpper, CaseSensitive, Check, CircleX } from '@lucide/svelte';
+	import { User, CaseUpper, CaseSensitive, Check, CircleX, Calendar } from '@lucide/svelte';
 
-	let search = $state('');
+	let toastMessage = $state('');
+	let toastType = $state<'success' | 'error'>('success');
+	let showToast = $state(false);
+
+	function showToastMessage(message: string, type: 'success' | 'error' = 'success') {
+		toastMessage = message;
+		toastType = type;
+		showToast = true;
+		setTimeout(() => {
+			showToast = false;
+		}, 3000);
+	}
+
+	let { data = { students: [], guests: [], activeParty: null } }: { data?: { students: any[]; guests: any[]; activeParty: any } } = $props();
+
+	let search: string = $state('');
 	let group = $state('students');
 	const studentList = writable<Array<{ id: number, studentId: number; last_name: string; first_name: string; isMember: boolean; ticket?: any }>>([]);
 	const guestList = writable<Array<{ id: number; last_name: string; first_name: string; guarantor?: { studentId: number; last_name: string; first_name: string }; ticket?: any }>>([]);
-	const filteredStudents = writable([]);
-	const filteredGuests = writable([]);
-	const errorMessage = writable('');
+	const filteredStudents = writable<Array<{ id: number, studentId: number; last_name: string; first_name: string; isMember: boolean; ticket?: any }>>([]);
+	const filteredGuests = writable<Array<{ id: number; last_name: string; first_name: string; guarantor?: { studentId: number; last_name: string; first_name: string }; ticket?: any }>>([]);
+	const errorMessage = writable<string>('');
 	async function fetchLists() {
+		// Don't fetch if no active party
+		if (!data?.activeParty) {
+			studentList.set([]);
+			guestList.set([]);
+			filteredStudents.set([]);
+			filteredGuests.set([]);
+			return;
+		}
+		
 		try {
 			const [studentsRes, guestsRes] = await Promise.all([
 				fetch('/api/students'),
@@ -72,14 +96,18 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to create ticket');
+				const errorData = await response.json();
+				console.error('Server error:', response.status, errorData);
+				throw new Error(`Failed to create ticket: ${errorData.error || response.statusText}`);
 			}
 
 			const result = await response.json();
 			console.log('Ticket created successfully:', result);
-			await fetchLists()
+			await fetchLists();
+			showToastMessage('Ticket créé avec succès', 'success');
 		} catch (error) {
 			console.error('Error creating ticket:', error);
+			// showToastMessage(error.message || 'Erreur lors de la création du ticket', 'error');
 		}
 	}
 
@@ -156,19 +184,36 @@
 	}
 
 	let actionsModalOpen = $state(false);
+	let selectedPersonId = $state<number | null>(null);
+	let selectedPersonType = $state<'student' | 'guest'>('student');
+	let selectedPersonName = $state('');
 	let choice: string = $state('');
+
+	function openActionsModal(id: number, firstName: string, lastName: string, type: 'student' | 'guest') {
+		selectedPersonId = id;
+		selectedPersonType = type;
+		selectedPersonName = `${firstName} ${lastName.toUpperCase()}`;
+		actionsModalOpen = true;
+	}
 
 	function actionsModalClose() {
 		actionsModalOpen = false;
+		selectedPersonId = null;
+		selectedPersonName = '';
 		choice = '';
 	}
-	function actionsModalConfirm(id:number) {
+	function actionsModalConfirm() {
+		if (selectedPersonId === null) return;
+		
 		if (choice === 'exit') {
-			handleExitTicketClick(id);
+			updateExitTicket(selectedPersonType, selectedPersonId);
 		} else if (choice === 'delete') {
-			handleDeleteTicketClick(id)
+			deleteTicket(selectedPersonType, selectedPersonId);
 		}
 		actionsModalOpen = false;
+		selectedPersonId = null;
+		selectedPersonName = '';
+		choice = '';
 	}
 
 	let newGuestModalOpen = $state(false);
@@ -235,6 +280,15 @@
 </script>
 
 <Container>
+	{#if !data?.activeParty}
+		<div class="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+			<Calendar class="w-16 h-16 text-gray-400" />
+			<h2 class="text-2xl font-bold text-gray-700">Aucune soirée active</h2>
+			<p class="text-gray-500 text-center max-w-md">
+				Il n'y a actuellement aucune soirée active. Contactez un administrateur pour créer et activer une soirée.
+			</p>
+		</div>
+	{:else}
 	<!-- Search bar -->
 	<DeviceMenu bind:input_value={search} filter={filter} bind:ModalOpen={newGuestModalOpen}/>
 	<!-- Modal for device creation -->
@@ -272,47 +326,12 @@
 								<td class="text-right">
 									{#if row.ticket != null}
 										{#if row.ticket.entryAt == row.ticket.exitAt }
-<!--										<button class="btn btn-sm btn-primary" onclick={() => handleDeleteTicketClick(row.id)}>Supprimer</button> | <button class="btn btn-sm btn-primary" disabled onclick={() => handleDeleteTicketClick(row.id)}>Parti(e)</button>-->
-											<Modal
-												open={actionsModalOpen}
-												onOpenChange={(e) => (actionsModalOpen = e.open)}
-												triggerBase="btn btn-sm btn-primary"
-												contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
-												backdropClasses="backdrop-blur-sm"
-											>
-												{#snippet trigger()}Modifier{/snippet}
-												{#snippet content()}
-													<header class="flex justify-between">
-														<h2 class="h2">Actions sur {row.first_name} { row.last_name.toUpperCase()}</h2>
-													</header>
-													<article>
-														<p class="opacity-60">
-															Que voulez-vous faire ? Vous pouvez choisir de supprimer le ticket ou de marquer l'étudiant comme parti(e).
-														</p>
-														<div class="flex justify-center py-5">
-															<Segment name="align" value={choice} onValueChange={(e) => (choice = e.value)}>
-																<Segment.Item value="exit">
-	<!--																<LogOut>Parti(e)</LogOut>-->
-																	Déclarer parti(e)
-																</Segment.Item>
-																<Segment.Item value="delete">
-	<!--																<Trash2>Supprimer</Trash2>-->
-																	Supprimer le ticket
-																</Segment.Item>
-															</Segment>
-														</div>
-													</article>
-													<footer class="flex justify-end gap-4">
-														<button type="button" class="btn preset-tonal" onclick={actionsModalClose}>Annuler</button>
-														<button type="button" class="btn preset-filled" onclick={() => actionsModalConfirm(row.id)}>Confirmer</button>
-													</footer>
-												{/snippet}
-											</Modal>
+											<button class="btn btn-sm btn-primary" onclick={() => openActionsModal(row.id, row.first_name, row.last_name, 'student')}>Modifier</button>
 										{:else}
 											<button class="btn btn-sm btn-primary" disabled>Parti(e)</button>
 										{/if}
 									{:else}
-										<button class="btn btn-sm btn-primary" onclick={() => handleGetTicketClick(row.id)}>Ajouter</button>
+										<button class="btn btn-sm btn-primary" onclick={() => createTicket('student', row.id)}>Ajouter</button>
 									{/if}
 								</td>
 							</tr>
@@ -356,9 +375,13 @@
 									{/if}
 									<td class="text-right">
 										{#if row.ticket != null}
-											<button class="btn btn-sm btn-primary" onclick={() => handleDeleteTicketClick(row.id)}>Supprimer</button>
+											{#if row.ticket.entryAt == row.ticket.exitAt }
+												<button class="btn btn-sm btn-primary" onclick={() => openActionsModal(row.id, row.first_name, row.last_name, 'guest')}>Modifier</button>
+											{:else}
+												<button class="btn btn-sm btn-primary" disabled>Parti(e)</button>
+											{/if}
 										{:else}
-											<button class="btn btn-sm btn-primary" onclick={() => handleGetTicketClick(row.id)}>Ajouter</button>
+											<button class="btn btn-sm btn-primary" onclick={() => createTicket('guest', row.id)}>Ajouter</button>
 										{/if}
 									</td>
 								</tr>
@@ -389,7 +412,41 @@
 			</div>
 		</div>
 	{/if}
+	{/if}
 </Container>
+
+<Modal
+	open={actionsModalOpen}
+	onOpenChange={(e) => (actionsModalOpen = e.open)}
+	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
+	backdropClasses="backdrop-blur-sm"
+>
+	{#snippet content()}
+		<header class="flex justify-between">
+			<h2 class="h2">Actions sur {selectedPersonName}</h2>
+		</header>
+		<article>
+			<p class="opacity-60">
+				Que voulez-vous faire ? Vous pouvez choisir de supprimer le ticket ou de marquer la personne comme partie.
+			</p>
+			<div class="flex justify-center py-5">
+				<Segment name="align" value={choice} onValueChange={(e) => (choice = e.value)}>
+					<Segment.Item value="exit">
+						Déclarer parti(e)
+					</Segment.Item>
+					<Segment.Item value="delete">
+						Supprimer le ticket
+					</Segment.Item>
+				</Segment>
+			</div>
+		</article>
+		<footer class="flex justify-end gap-4">
+			<button type="button" class="btn preset-tonal" onclick={actionsModalClose}>Annuler</button>
+			<button type="button" class="btn preset-filled" onclick={actionsModalConfirm}>Confirmer</button>
+		</footer>
+	{/snippet}
+</Modal>
+
 <Modal
 	open={newGuestModalOpen}
 	onOpenChange={(e) => (newGuestModalOpen = e.open)}
@@ -500,5 +557,43 @@
         bottom: 0;
         top: auto;
     }
+
+    .toast-notification {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        animation: slideIn 0.3s ease-out;
+        max-width: 400px;
+    }
+
+    .toast-success {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .toast-error {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
 </style>
 
+{#if showToast}
+	<div class="toast-notification toast-{toastType}">
+		{toastMessage}
+	</div>
+{/if}

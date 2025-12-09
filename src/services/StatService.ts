@@ -1,21 +1,26 @@
 import prisma from '$lib/prisma';
+import PartyService from './PartyService';
 
 class StatService {
 	async getStudentsWithTickets() {
 		try {
-			return await prisma.student.findMany({
+			const activeParty = await PartyService.getActiveParty();
+			if (!activeParty) {
+				return 0;
+			}
+
+			return await prisma.student.count({
 				where: {
-					ticket: {
-						isNot: null
+					tickets: {
+						some: {
+							partyId: activeParty.id
+						}
 					}
-				},
-				include: {
-					ticket: true
 				}
 			});
 		} catch (error) {
 			console.error('Error fetching students count:', error);
-			throw new Error('Could not fetch students count');
+			return 0;
 		}
 	}
 
@@ -24,24 +29,28 @@ class StatService {
 			return await prisma.student.count();
 		} catch (error) {
 			console.error('Error fetching students count:', error);
-			throw new Error('Could not fetch students count');
+			return 0;
 		}
 	}
 	async getGuestsWithTickets() {
 		try {
-			return await prisma.guest.findMany({
+			const activeParty = await PartyService.getActiveParty();
+			if (!activeParty) {
+				return 0;
+			}
+
+			return await prisma.guest.count({
 				where: {
-					ticket: {
-						isNot: null
+					tickets: {
+						some: {
+							partyId: activeParty.id
+						}
 					}
-				},
-				include: {
-					ticket: true
 				}
 			});
 		} catch (error) {
 			console.error('Error fetching guests count:', error);
-			throw new Error('Could not fetch guests count');
+			return 0;
 		}
 	}
 
@@ -51,13 +60,21 @@ class StatService {
 			return guestsCount;
 		} catch (error) {
 			console.error('Error fetching guests count:', error);
-			throw new Error('Could not fetch guests count');
+			return 0;
 		}
 	}
 
 	async getTicketsByHour() {
 		try {
+			const activeParty = await PartyService.getActiveParty();
+			if (!activeParty) {
+				return {};
+			}
+
 			const tickets = await prisma.ticket.findMany({
+				where: {
+					partyId: activeParty.id
+				},
 				select: { createdAt: true }
 			});
 
@@ -70,7 +87,7 @@ class StatService {
 			return hours;
 		} catch (error) {
 			console.error('Erreur lors du groupement par heure:', error);
-			throw new Error('Erreur lors du groupement par heure');
+			return {};
 		}
 	}
 }

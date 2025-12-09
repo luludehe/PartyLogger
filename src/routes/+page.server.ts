@@ -2,6 +2,7 @@ import TicketService from '../services/TicketService';
 import type { PageServerLoad, Actions } from './$types';
 import StudentService from '../services/StudentService';
 import GuestService from '../services/GuestService';
+import PartyService from '../services/PartyService';
 import { redirect } from '@sveltejs/kit';
 import { hasPermission, PERMISSIONS } from '$lib/server/permissions';
 
@@ -18,9 +19,16 @@ export const load = (async ({ locals }) => {
 		throw redirect(302, '/');
 	}
 
-	const studentsList = await StudentService.getAllStudents();
-	const guestsList = await GuestService.getAllGuests();
-	return { students: studentsList, guests: guestsList };
+	try {
+		const activeParty = await PartyService.getActiveParty();
+		const studentsList = await StudentService.getAllStudents();
+		const guestsList = await GuestService.getAllGuests();
+		return { students: studentsList, guests: guestsList, activeParty };
+	} catch (error) {
+		console.error('Error loading data:', error);
+		// Return empty data instead of crashing
+		return { students: [], guests: [], activeParty: null };
+	}
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {

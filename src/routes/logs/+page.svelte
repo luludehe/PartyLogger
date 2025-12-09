@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Container from '$lib/components/Container.svelte'
 	import DeviceMenu from '$lib/components/SearchBar.svelte'
+	import { Calendar } from '@lucide/svelte';
 
 	let { data } = $props()
 
@@ -40,11 +41,19 @@
 </script>
 
 <Container>
+	{#if !data.activeParty}
+		<div class="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+			<Calendar class="w-16 h-16 text-gray-400" />
+			<h2 class="text-2xl font-bold text-gray-700">Aucune soirée active</h2>
+			<p class="text-gray-500 text-center max-w-md">
+				Il n'y a actuellement aucune soirée active. Contactez un administrateur pour créer et activer une soirée.
+			</p>
+		</div>
+	{:else}
 	<!-- Search bar -->
 	<DeviceMenu bind:input_value={search} filter={filter}/>
 	<!-- Modal for device creation -->
 	<!--	<CreationModal bind:show={showCreateForm} />-->
-
 	{#if filteredLogs.length > 0}
 		<div class="table-wrap mt-5">
 			<table class="table caption-bottom w-full text-xs sm:text-base">
@@ -72,6 +81,7 @@
 		</div>
 	{:else}
 		<div class="flex justify-center mt-5"><h1 class="text-xl">Aucun message</h1></div>
+	{/if}
 	{/if}
 </Container>
 

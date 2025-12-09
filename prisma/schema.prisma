@@ -8,15 +8,15 @@ datasource db {
 }
 
 model Student {
-  id         Int     @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   last_name  String
   first_name String
-  studentId  Int     @unique
+  studentId  Int      @unique
   speciality String
   isMember   Boolean
   guests     Guest[]
   Log        Log[]
-  ticket     Ticket?
+  tickets    Ticket[]
 }
 
 model Guest {
@@ -26,33 +26,42 @@ model Guest {
   guarantorId Int?
   guarantor   Student? @relation(fields: [guarantorId], references: [id])
   Log         Log[]
-  ticket      Ticket?
+  tickets     Ticket[]
 
   @@index([guarantorId], map: "Guest_guarantorId_fkey")
 }
 
 model Ticket {
   id        Int       @id @default(autoincrement())
-  studentId Int?      @unique
-  guestId   Int?      @unique
+  studentId Int?
+  guestId   Int?
+  partyId   Int?
   createdAt DateTime  @default(now())
   entryAt   DateTime? @default(now())
   exitAt    DateTime? @default(now())
   guest     Guest?    @relation(fields: [guestId], references: [id])
   student   Student?  @relation(fields: [studentId], references: [id])
+  party     Party?    @relation(fields: [partyId], references: [id])
+
+  @@unique([studentId, partyId])
+  @@unique([guestId, partyId])
+  @@index([partyId])
 }
 
 model Log {
   id        Int      @id @default(autoincrement())
   studentId Int?
   guestId   Int?
+  partyId   Int?
   action    String
   timestamp DateTime @default(now())
   guest     Guest?   @relation(fields: [guestId], references: [id])
   student   Student? @relation(fields: [studentId], references: [id])
+  party     Party?   @relation(fields: [partyId], references: [id])
 
   @@index([guestId], map: "Log_guestId_fkey")
   @@index([studentId], map: "Log_studentId_fkey")
+  @@index([partyId])
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -79,6 +88,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   sessions     Session[]
+  parties      Party[]
 }
 
 model Session {
@@ -106,4 +116,37 @@ model Permission {
   description String?
   roles       Role[]
   createdAt   DateTime @default(now())
+}
+
+model Party {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  date        DateTime
+  startTime   DateTime?
+  endTime     DateTime?
+  location    String?
+  isActive    Boolean     @default(false)
+  isClosed    Boolean     @default(false)
+  createdBy   Int
+  creator     User        @relation(fields: [createdBy], references: [id])
+  tickets     Ticket[]
+  logs        Log[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  stats       PartyStats?
+}
+
+model PartyStats {
+  id                 Int       @id @default(autoincrement())
+  partyId            Int       @unique
+  party              Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  totalStudents      Int       @default(0)
+  totalGuests        Int       @default(0)
+  totalTickets       Int       @default(0)
+  membersCount       Int       @default(0)
+  nonMembersCount    Int       @default(0)
+  peakAttendance     Int       @default(0)
+  peakAttendanceTime DateTime?
+  updatedAt          DateTime  @updatedAt
 }

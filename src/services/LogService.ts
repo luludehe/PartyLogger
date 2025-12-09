@@ -1,10 +1,13 @@
 import prisma from '$lib/prisma';
+import PartyService from './PartyService';
 
 class LogService {
 
 	async getAllLogs() {
 		try {
+			const activeParty = await PartyService.getActiveParty();
 			const logs = await prisma.log.findMany({
+				where: activeParty ? { partyId: activeParty.id } : {},
 				select: {
 					id: true,
 					student: {

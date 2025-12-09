@@ -1,4 +1,5 @@
 import LogService from '../../services/LogService';
+import PartyService from '../../services/PartyService';
 import { redirect } from '@sveltejs/kit';
 import { hasPermission, PERMISSIONS } from '$lib/server/permissions';
 import type { PageServerLoad } from './$types';
@@ -14,6 +15,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/');
 	}
 
-	const logs = await LogService.getAllLogs();
-	return { logs: logs };
+	try {
+		const activeParty = await PartyService.getActiveParty();
+		const logs = await LogService.getAllLogs();
+		return { logs, activeParty };
+	} catch (error) {
+		console.error('Error loading logs:', error);
+		// Return empty logs instead of crashing
+		return { logs: [], activeParty: null };
+	}
 };

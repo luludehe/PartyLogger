@@ -1,5 +1,6 @@
 import prisma from '$lib/prisma';
 import { error } from '@sveltejs/kit';
+import PartyService from './PartyService';
 
 class TicketService {
 
@@ -17,9 +18,25 @@ class TicketService {
 				throw new Error(`Student with ID ${id} does not exist`);
 			}
 
+			// Récupère la soirée active
+			const activeParty = await PartyService.getActiveParty();
+
+			// Vérifier si un ticket existe déjà pour cette soirée
+			const existingTicket = await prisma.ticket.findFirst({
+				where: { 
+					studentId: student.id,
+					partyId: activeParty?.id
+				},
+			});
+
+			if (existingTicket) {
+				throw new Error('Un ticket existe déjà pour cet étudiant pour cette soirée');
+			}
+
 			const newTicket = await prisma.ticket.create({
 				data: {
 					studentId: student.id,
+					partyId: activeParty?.id,
 				},
 			});
 
@@ -27,20 +44,25 @@ class TicketService {
 				data: {
 					studentId: student.id,
 					action: 'entry',
+					partyId: activeParty?.id,
 				},
 			});
 
 			return newTicket;
 		} catch (error) {
 			console.error('Error creating student ticket:', error);
-			throw new Error('Could not create student ticket');
+			throw error;
 		}
 	}
 
 	async updateExitStudentTicket(id: number) {
 		try {
-			const ticket = await prisma.ticket.findUnique({
-				where: { studentId: id },
+			const activeParty = await PartyService.getActiveParty();
+			const ticket = await prisma.ticket.findFirst({
+				where: { 
+					studentId: id,
+					partyId: activeParty?.id
+				},
 				include: { student: true }
 			});
 
@@ -59,6 +81,7 @@ class TicketService {
 				data: {
 					studentId: ticket.student.id,
 					action: 'exit',
+					partyId: ticket.partyId,
 				},
 			});
 
@@ -71,8 +94,12 @@ class TicketService {
 
 	async deleteStudentTicket(id: number) {
 		try {
-			const ticket = await prisma.ticket.findUnique({
-				where: { studentId: id },
+			const activeParty = await PartyService.getActiveParty();
+			const ticket = await prisma.ticket.findFirst({
+				where: { 
+					studentId: id,
+					partyId: activeParty?.id
+				},
 				include: { student: true }
 			});
 
@@ -87,6 +114,7 @@ class TicketService {
 				data: {
 					studentId: ticket.student.id,
 					action: 'delete_ticket',
+					partyId: ticket.partyId,
 				},
 			});
 
@@ -106,28 +134,50 @@ class TicketService {
 			if (!guest) {
 				throw new Error(`Guest with ID ${id} does not exist`);
 			}
+
+			// Récupère la soirée active
+			const activeParty = await PartyService.getActiveParty();
+
+			// Vérifier si un ticket existe déjà pour cette soirée
+			const existingTicket = await prisma.ticket.findFirst({
+				where: { 
+					guestId: id,
+					partyId: activeParty?.id
+				},
+			});
+
+			if (existingTicket) {
+				throw new Error('Un ticket existe déjà pour cet invité pour cette soirée');
+			}
+
 			const newTicket = await prisma.ticket.create({
 				data: {
 					guestId: id,
+					partyId: activeParty?.id,
 				},
 			});
 			await prisma.log.create({
 				data: {
 					guestId: id,
 					action: 'entry',
+					partyId: activeParty?.id,
 				},
 			});
 			return newTicket;
 		} catch (error) {
 			console.error('Error creating guest ticket:', error);
-			throw new Error('Could not create guest ticket');
+			throw error;
 		}
 	}
 
 	async deleteGuestTicket(id: number) {
 		try {
-			const ticket = await prisma.ticket.findUnique({
-				where: { id },
+			const activeParty = await PartyService.getActiveParty();
+			const ticket = await prisma.ticket.findFirst({
+				where: { 
+					guestId: id,
+					partyId: activeParty?.id
+				},
 				include: { guest: true }
 			});
 
@@ -142,6 +192,7 @@ class TicketService {
 				data: {
 					guestId: ticket.guest.id,
 					action: 'delete_ticket',
+					partyId: ticket.partyId,
 				},
 			});
 
@@ -154,8 +205,12 @@ class TicketService {
 
 	async updateExitGuestTicket(id: number) {
 		try {
-			const ticket = await prisma.ticket.findUnique({
-				where: { id },
+			const activeParty = await PartyService.getActiveParty();
+			const ticket = await prisma.ticket.findFirst({
+				where: { 
+					guestId: id,
+					partyId: activeParty?.id
+				},
 				include: { guest: true }
 			});
 
@@ -174,6 +229,7 @@ class TicketService {
 				data: {
 					guestId: ticket.guest.id,
 					action: 'exit',
+					partyId: ticket.partyId,
 				},
 			});
 
