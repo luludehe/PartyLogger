@@ -373,8 +373,9 @@
 			<div class="mb-6">
 				<h2 class="mb-4 text-2xl font-bold">Statistiques globales</h2>
 
-				<FlexiBoard
-					boards={[
+				{#if data.parties && data.users}
+					<FlexiBoard
+						boards={[
 						{
 							id: 'overview',
 							title: 'Vue d\'ensemble',
@@ -427,6 +428,11 @@
 						}
 					]}
 				/>
+			{:else}
+				<div class="rounded-lg border border-gray-200 bg-white p-8 text-center">
+					<p class="text-gray-500">Chargement des statistiques...</p>
+				</div>
+			{/if}
 			</div>
 		{/if}
 	</div>

@@ -56,7 +56,7 @@
 			{#if data.user}
 				<div class="relative">
 					<button 
-						onclick={() => showUserMenu = !showUserMenu}
+						onclick={() => { showUserMenu = !showUserMenu; }}
 						class="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-100"
 					>
 						<div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-semibold">
@@ -66,17 +66,27 @@
 					</button>
 					
 					{#if showUserMenu}
-						<div class="absolute right-0 mt-2 w-48 rounded-lg bg-white shadow-lg border z-50">
+						<div 
+							class="absolute right-0 mt-2 w-48 rounded-lg bg-white shadow-lg border z-50"
+							onmouseleave={() => showUserMenu = false}
+						>
 							<div class="p-3 border-b">
 								<p class="font-medium">{data.user.firstName} {data.user.lastName}</p>
 								<p class="text-xs text-gray-500">{data.user.role.name}</p>
 							</div>
-							<form method="POST" action="/logout" use:enhance>
-								<button type="submit" class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 text-red-600">
-									<LogOut size={16} />
-									Déconnexion
-								</button>
-							</form>
+							<button 
+								type="button"
+								onclick={async () => {
+									const response = await fetch('/logout', { method: 'POST' });
+									if (response.redirected || response.ok) {
+										window.location.href = '/login';
+									}
+								}}
+								class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 text-red-600"
+							>
+								<LogOut size={16} />
+								Déconnexion
+							</button>
 						</div>
 					{/if}
 				</div>
